@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class TFmovement : MonoBehaviour
 {
@@ -39,6 +40,8 @@ public class TFmovement : MonoBehaviour
 
     //Variables
     Vector3 direction;
+    Vector3 wallDirection;
+    Vector3 wallRunNormal;
 
     public enum MoveState
     {
@@ -52,7 +55,7 @@ public class TFmovement : MonoBehaviour
     public MoveState mS;
 
     RaycastHit slopeHit;
-    bool onSlope = false;
+    bool canWallRun = true;
 
     void Start()
     {
@@ -85,13 +88,26 @@ public class TFmovement : MonoBehaviour
             case MoveState.AIR:
                 rb.AddForce(direction * airSpeed, ForceMode.Force);
                 break;
+            case MoveState.WALLRUNNING:
+                rb.AddForce(-wallRunNormal * 50, ForceMode.Force);
+
+                //Vector3 horizontal = Vector3.ProjectOnPlane(orientation.forward, wallRunNormal) * .5f;
+                //Vector3 vertical = Vector3.ProjectOnPlane(Camera.main.transform.forward, wallRunNormal);
+
+                Vector3 horizontal = Camera.main.transform.right * Input.GetAxis("Horizontal");
+                Vector3 vertical = Camera.main.transform.forward * Input.GetAxis("Vertical");
+                Vector3 camDir = horizontal + vertical;
+                wallDirection = Vector3.ProjectOnPlane(camDir, wallRunNormal);
+
+                rb.AddForce(wallDirection * wallSpeed, ForceMode.Force);
+                break;
 
         }
     }
     
     void Jump()
     {
-        if(Input.GetKey(KeyCode.Space) && mS == MoveState.SLOPE)
+        if(Input.GetKeyDown(KeyCode.Space) && mS == MoveState.SLOPE)
         {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
@@ -105,17 +121,17 @@ public class TFmovement : MonoBehaviour
 
             Physics.Raycast(spherePosition.position, -Vector3.up, out slopeHit, Mathf.Infinity, whatIsGround);
             float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
-            Debug.Log(angle.ToString("0.0"));
 
             if (angle <= maxSlopeAngle)
             {
                 mS = MoveState.SLOPE;
             }
         }
-        else
+        else if (!Physics.CheckSphere(spherePosition.position, sphereRadius * 1.2f, whatIsGround))
         {
             mS = MoveState.AIR;
         }
+
     }
 
     void UpdatePhysics()
@@ -134,6 +150,10 @@ public class TFmovement : MonoBehaviour
                 rb.drag = groundDrag;
                 rb.useGravity = false;
                 break;
+            case MoveState.WALLRUNNING:
+                rb.drag = wallDrag;
+                rb.useGravity = false;
+                break;
         }
     }
 
@@ -145,5 +165,27 @@ public class TFmovement : MonoBehaviour
     Vector3 GetSlopeDireciton()
     {
         return Vector3.ProjectOnPlane(direction, slopeHit.normal);
+    }
+    
+    Vector3 GetWallRunningDirection()
+    {
+        return Vector3.ProjectOnPlane(wallDirection, wallRunNormal);
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if(collision.gameObject.tag == "ground")
+        {
+            Vector3 wallNormal = collision.contacts[0].normal;
+            float angle = Vector3.Angle(wallNormal, Vector3.up);
+            if(angle > 45)
+            {
+                wallRunNormal = wallNormal;
+                if(canWallRun)
+                {
+                    mS = MoveState.WALLRUNNING;
+                }
+            }
+        }
     }
 }
