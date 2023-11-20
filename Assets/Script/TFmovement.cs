@@ -9,6 +9,7 @@ public class TFmovement : MonoBehaviour
     [Header("References:")]
     public Transform orientation;
     public Transform cameraAxis;
+    public Transform weapon;
     public Camera cam;
 
     [Space(10)]
@@ -27,6 +28,7 @@ public class TFmovement : MonoBehaviour
     public float wallSpeed;
     public float wallRunTime;
     public float counterGravityForce;
+    public float acceleration;
 
     float currentWRF;
     float currentCGF;
@@ -50,6 +52,7 @@ public class TFmovement : MonoBehaviour
     [Space(10)]
     [Header("Camera:")]
     public float tiltSpeed = 1f;
+    public float weaponTiltSpeed = 1f;
     public float tilt = 10f;
 
     //Components
@@ -112,6 +115,7 @@ public class TFmovement : MonoBehaviour
         }
 
         cam.transform.localRotation = Quaternion.Slerp(cam.transform.localRotation, Quaternion.Euler(0, 0, targetTilt), Time.deltaTime * tiltSpeed);
+        weapon.localRotation = Quaternion.Slerp(weapon.localRotation, Quaternion.Euler(0, 0, targetTilt), Time.deltaTime * weaponTiltSpeed);
     }
 
     void Move()
@@ -155,6 +159,8 @@ public class TFmovement : MonoBehaviour
                     }
                 }
 
+                currentWRF += acceleration;
+
                 rb.AddForce(wallDirection * currentWRF, ForceMode.Force);
                 rb.AddForce(Vector3.up * currentCGF, ForceMode.Force);
                 break;
@@ -195,6 +201,7 @@ public class TFmovement : MonoBehaviour
     {
         if (Physics.CheckSphere(spherePosition.position, sphereRadius, whatIsGround))
         {
+            currentWRF = wallSpeed;
             mS = MoveState.GROUND;
             canDoubleJump = true;
 
@@ -277,7 +284,6 @@ public class TFmovement : MonoBehaviour
                 if(canWallRun)
                 {
                     mS = MoveState.WALLRUNNING;
-                    currentWRF = wallSpeed;
                     currentCGF = counterGravityForce;
                     currentWRT = 0;
                     wallFall = false;
