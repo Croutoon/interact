@@ -8,6 +8,8 @@ public class TFmovement : MonoBehaviour
 
     [Header("References:")]
     public Transform orientation;
+    public Transform cameraAxis;
+    public Camera cam;
 
     [Space(10)]
     [Header("Ground Movement:")]
@@ -23,10 +25,20 @@ public class TFmovement : MonoBehaviour
     [Header("Wall Movement:")]
     public float wallDrag;
     public float wallSpeed;
+    public float wallRunTime;
+    public float counterGravityForce;
+
+    float currentWRF;
+    float currentCGF;
+    float currentWRT;
+    bool wallFall = false;
 
     [Space(10)]
     [Header("Jump:")]
     public float jumpForce;
+    public float doubleJumpForce;
+    public float wallJumpForce;
+    public float wallLeapForce;
 
     [Space(10)]
     [Header("Ground sphere check:")]
@@ -34,6 +46,11 @@ public class TFmovement : MonoBehaviour
     public Transform spherePosition;
     public float sphereRadius;
     public float maxSlopeAngle;
+
+    [Space(10)]
+    [Header("Camera:")]
+    public float tiltSpeed = 1f;
+    public float tilt = 10f;
 
     //Components
     Rigidbody rb;
@@ -56,6 +73,9 @@ public class TFmovement : MonoBehaviour
 
     RaycastHit slopeHit;
     bool canWallRun = true;
+    bool canDoubleJump = true;
+
+    float targetTilt = 0f;
 
     void Start()
     {
@@ -75,6 +95,25 @@ public class TFmovement : MonoBehaviour
         Move();
     }
 
+    void LateUpdate()
+    {
+        if(mS == MoveState.WALLRUNNING)
+        {
+            targetTilt = getCameraTilt() * tilt;
+        }
+        switch (mS)
+        {
+            case MoveState.WALLRUNNING:
+                targetTilt = getCameraTilt() * tilt;
+                break;
+            default:
+                targetTilt = 0;
+                break;
+        }
+
+        cam.transform.localRotation = Quaternion.Slerp(cam.transform.localRotation, Quaternion.Euler(0, 0, targetTilt), Time.deltaTime * tiltSpeed);
+    }
+
     void Move()
     {
         switch (mS)
@@ -91,15 +130,33 @@ public class TFmovement : MonoBehaviour
             case MoveState.WALLRUNNING:
                 rb.AddForce(-wallRunNormal * 50, ForceMode.Force);
 
-                //Vector3 horizontal = Vector3.ProjectOnPlane(orientation.forward, wallRunNormal) * .5f;
-                //Vector3 vertical = Vector3.ProjectOnPlane(Camera.main.transform.forward, wallRunNormal);
-
-                Vector3 horizontal = Camera.main.transform.right * Input.GetAxis("Horizontal");
-                Vector3 vertical = Camera.main.transform.forward * Input.GetAxis("Vertical");
+                Vector3 horizontal = cameraAxis.right * Input.GetAxis("Horizontal");
+                Vector3 vertical = cameraAxis.forward * Input.GetAxis("Vertical");
                 Vector3 camDir = horizontal + vertical;
                 wallDirection = Vector3.ProjectOnPlane(camDir, wallRunNormal);
 
-                rb.AddForce(wallDirection * wallSpeed, ForceMode.Force);
+                currentWRT += 0.1f;
+
+                if(currentWRT > wallRunTime)
+                {
+                    currentWRT = 0f;
+                    wallFall = true;
+                }
+
+                if (wallFall)
+                {
+                    if (currentCGF > 0)
+                    {
+                        currentCGF = currentCGF - currentWRT * counterGravityForce;
+                    }
+                    else
+                    {
+                        currentCGF = 0;
+                    }
+                }
+
+                rb.AddForce(wallDirection * currentWRF, ForceMode.Force);
+                rb.AddForce(Vector3.up * currentCGF, ForceMode.Force);
                 break;
 
         }
@@ -107,10 +164,31 @@ public class TFmovement : MonoBehaviour
     
     void Jump()
     {
-        if(Input.GetKeyDown(KeyCode.Space) && mS == MoveState.SLOPE)
+        if (Input.GetKeyDown(KeyCode.Space))
         {
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            if (mS == MoveState.SLOPE)
+            {
+                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            }
+            if(mS == MoveState.WALLRUNNING)
+            {
+                rb.AddForce(Vector3.up * wallJumpForce, ForceMode.Impulse);
+                rb.AddForce(wallLeapForce * wallRunNormal, ForceMode.Impulse);
+                rb.AddForce(wallLeapForce * orientation.forward, ForceMode.Impulse);
+            }
+            if(mS == MoveState.AIR && canDoubleJump)
+            {
+
+                Vector3 velH = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+                Vector3 newVelH = GetDirection(orientation) * velH.magnitude;
+
+                rb.velocity = new Vector3(newVelH.x, rb.velocity.y, newVelH.z);
+                rb.AddForce(Vector3.up * doubleJumpForce, ForceMode.Impulse);
+
+                canDoubleJump = false;
+            }
         }
+        
     }
 
     void UpdateState()
@@ -118,6 +196,7 @@ public class TFmovement : MonoBehaviour
         if (Physics.CheckSphere(spherePosition.position, sphereRadius, whatIsGround))
         {
             mS = MoveState.GROUND;
+            canDoubleJump = true;
 
             Physics.Raycast(spherePosition.position, -Vector3.up, out slopeHit, Mathf.Infinity, whatIsGround);
             float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
@@ -127,7 +206,7 @@ public class TFmovement : MonoBehaviour
                 mS = MoveState.SLOPE;
             }
         }
-        else if (!Physics.CheckSphere(spherePosition.position, sphereRadius * 1.2f, whatIsGround))
+        else if (!Physics.CheckSphere(spherePosition.position, sphereRadius * 1.1f, whatIsGround))
         {
             mS = MoveState.AIR;
         }
@@ -141,6 +220,7 @@ public class TFmovement : MonoBehaviour
             case MoveState.GROUND:
                 rb.drag = groundDrag;
                 rb.useGravity = false;
+                
                 break;
             case MoveState.AIR:
                 rb.drag = airDrag;
@@ -152,9 +232,22 @@ public class TFmovement : MonoBehaviour
                 break;
             case MoveState.WALLRUNNING:
                 rb.drag = wallDrag;
-                rb.useGravity = false;
+                rb.useGravity = true;
                 break;
         }
+    }
+
+    float getCameraTilt()
+    {
+        Vector3 rotDir = Vector3.ProjectOnPlane(wallRunNormal, Vector3.up);
+        Quaternion rotation = Quaternion.AngleAxis(-90f, Vector3.up);
+        rotDir = rotation * rotDir;
+        float angle = Vector3.SignedAngle(Vector3.up, wallRunNormal, Quaternion.AngleAxis(90f, rotDir) * wallRunNormal);
+        angle -= 90;
+        angle /= 180;
+        Vector3 playerDir = orientation.forward;
+        Vector3 normal = new Vector3(wallRunNormal.x, 0, wallRunNormal.z);
+        return Vector3.Cross(playerDir, normal).y * angle;
     }
 
     Vector3 GetDirection(Transform dir)
@@ -184,6 +277,11 @@ public class TFmovement : MonoBehaviour
                 if(canWallRun)
                 {
                     mS = MoveState.WALLRUNNING;
+                    currentWRF = wallSpeed;
+                    currentCGF = counterGravityForce;
+                    currentWRT = 0;
+                    wallFall = false;
+                    canDoubleJump = true;
                 }
             }
         }
