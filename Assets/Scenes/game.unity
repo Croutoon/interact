@@ -26,7 +26,7 @@ RenderSettings:
   m_AmbientIntensity: 1
   m_AmbientMode: 0
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 72deae4d18418f94688abef8e8483df0, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.18028378, g: 0.22571412, b: 0.30692285, a: 1}
+  m_IndirectSpecularColor: {r: 0.5575409, g: 0.316382, b: 0.17812777, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -821,7 +821,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 1080630319}
-  wallPrefab: {fileID: 9009652501925506051, guid: 8bea259085ed25d41b8389e1d92d0271,
+  wallPrefab: {fileID: 9042857823056341159, guid: 2b773b56a1eb5c241838d115f893f05d,
     type: 3}
   wallAhead: 2
   distance: 20
@@ -879,13 +879,13 @@ MonoBehaviour:
   cam: {fileID: 330585545}
   groundSpeed: 150
   groundDrag: 7
-  airSpeed: 5
+  airSpeed: 2
   airDrag: 0
-  wallDrag: 3
-  wallSpeed: 130
-  wallRunTime: 7
+  wallDrag: 0.5
+  wallSpeed: 100
+  wallRunTime: 9999
   counterGravityForce: 30
-  acceleration: 0.2
+  acceleration: 1
   jumpForce: 15
   doubleJumpForce: 8
   wallJumpForce: 13
@@ -1082,7 +1082,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
   m_LocalPosition: {x: 0, y: -3.33, z: 0}
-  m_LocalScale: {x: 9.066, y: 0.30032983, z: 9.066}
+  m_LocalScale: {x: 11.950801, y: 0.3958948, z: 11.950801}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}

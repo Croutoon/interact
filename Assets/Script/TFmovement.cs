@@ -131,8 +131,6 @@ public class TFmovement : MonoBehaviour
             case MoveState.AIR:
                 rb.AddForce(direction * airSpeed, ForceMode.Force);
 
-                currentWRF += acceleration;
-
                 break;
             case MoveState.WALLRUNNING:
                 rb.AddForce(-wallRunNormal * 50, ForceMode.Force);
@@ -141,26 +139,6 @@ public class TFmovement : MonoBehaviour
                 Vector3 vertical = cameraAxis.forward * Input.GetAxis("Vertical");
                 Vector3 camDir = horizontal + vertical;
                 wallDirection = Vector3.ProjectOnPlane(camDir, wallRunNormal);
-
-                currentWRT += 0.1f;
-
-                if(currentWRT > wallRunTime)
-                {
-                    currentWRT = 0f;
-                    wallFall = true;
-                }
-
-                if (wallFall)
-                {
-                    if (currentCGF > 0)
-                    {
-                        currentCGF = currentCGF - currentWRT * counterGravityForce;
-                    }
-                    else
-                    {
-                        currentCGF = 0;
-                    }
-                }
 
                 currentWRF += acceleration;
 
