@@ -130,6 +130,9 @@ public class TFmovement : MonoBehaviour
                 break;
             case MoveState.AIR:
                 rb.AddForce(direction * airSpeed, ForceMode.Force);
+
+                currentWRF += acceleration;
+
                 break;
             case MoveState.WALLRUNNING:
                 rb.AddForce(-wallRunNormal * 50, ForceMode.Force);
