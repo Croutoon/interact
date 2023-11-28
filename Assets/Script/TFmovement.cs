@@ -247,11 +247,6 @@ public class TFmovement : MonoBehaviour
     {
         return Vector3.ProjectOnPlane(direction, slopeHit.normal);
     }
-    
-    Vector3 GetWallRunningDirection()
-    {
-        return Vector3.ProjectOnPlane(wallDirection, wallRunNormal);
-    }
 
     private void OnCollisionEnter(Collision collision)
     {
